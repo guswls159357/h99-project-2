@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta property="og:title" content="간단한 게시판"/>
+    <meta property="og:image" content="https://cdn.pixabay.com/photo/2014/04/02/10/13/sticky-note-303143__340.png"/>
+    <meta property="og:description" content="간단한 게시판 입니다">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <script src="/static/basic.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+
+    <title>게시판</title>
+    <style>
+        .card-list {
+            width: 40%;
+            display: block;
+            margin: 5% auto 5% auto;
+        }
+
+        .card {
+            margin: 2% auto 2% auto;
+        }
+
+        #post-box {
+            width: 500px;
+            margin: 20px auto;
+            padding: 50px;
+            border: black solid;
+            border-radius: 5px;
+        }
+
+        #title {
+            display: block;
+            width: 200px;
+        }
+
+
+        #content {
+            display: block;
+            width: 400px;
+        }
+
+        #submit {
+            display: block;
+            margin: auto;
+        }
+    </style>
+
+</head>
+<body>
+<header>
+    <div class="jumbotron">
+        <h1 class="display-4">게시판 목록</h1>
+        <hr class="my-4">
+        <p class="lead">
+            <button onclick="openClose()" id="btn-post-box" type="button" class="btn btn-primary" disabled>게시물 작성
+            </button>
+        </p>
+        <button id="login" class="btn btn-primary" onclick="toLoginForm()">로그인</button>
+        <button id="logout" class="btn btn-primary" onclick="logout()" disabled>로그아웃</button>
+        <button id="signup" class="btn btn-primary" onclick="toSignUpForm()">회원가입</button>
+    </div>
+</header>
+<div id="post-box" class="form-post" style="display:none">
+    <div>
+            <label for="title">제목</label>
+            <input type="text" id="title" name="title" class="form-control" placeholder="제목을 입력하세요" required>
+            <p>내용</p>
+            <textarea id="content" name="content" class="form-control" placeholder="내용을 입력하세요" required></textarea>
+            <button type="submit" id="submit" onclick="create()">만들기</button>
+    </div>
+</div>
+
+
+<div class="card-list" id="card-list">
+    <div th:each="board : ${board_list}" class="card">
+        <div class="card-body">
+            <h5 th:text="'제목: '+${board.title}" class="card-title">제목: </h5>
+            <p th:text="'작성자 닉네임: '+${board.nickname}" class="card-username">작성자: </p>
+            <p th:text="'생성일: '+${board.createdAt}" class="card-createdAt">작성 시간: </p>
+            <button class="btn btn-primary btn-detail" id="btn-detail" th:onclick="'javascript:toDetailForm('+${board.id}+')'">상세 보기</button>
+        </div>
+    </div>
+</div>
+
+</body>
+
+<script>
+
+    let login_user_nickname;
+
+    $(document).ready(function () {
+        const authorization = $.cookie('Authorization')
+        const refresh = $.cookie('refreshToken')
+
+        if (authorization && refresh) {
+
+            $.ajaxSetup({
+                headers: {
+                    'Authorization': authorization,
+                    'Refresh': refresh
+                }
+            })
+
+            $.ajax({
+                type: "GET",
+                url: '/api/user',
+                success: function (response) {
+                    if (response['code'] === 1) {
+                        $(`#login`).attr('disabled', true);
+                        $(`#signup`).attr('disabled', true);
+                        $(`#logout`).attr('disabled', false);
+                        $(`#btn-post-box`).attr('disabled', false);
+                        login_user_nickname = response['nickname']
+                    } else {
+                        $(`#logout`).attr('disabled', true);
+                        $(`#login`).attr('disabled', false);
+                        $(`#signup`).attr('disabled', false);
+                        $(`#btn-post-box`).attr('disabled', true);
+                        $.removeCookie('Authorization')
+                        $.removeCookie('refreshToken')
+                        let errorMsg = createErrorMsg(response['data']['errors']);
+                        alert(errorMsg);
+                    }
+
+                }
+            })
+        }
+    })
+
+
+
+    function openClose() {
+        if ($("#post-box").css("display") == "block") {
+            $("#post-box").hide();
+            $("#btn-post-box").text("포스팅 박스 열기");
+        } else {
+            $("#post-box").show();
+            $("#btn-post-box").text("포스팅 박스 닫기");
+        }
+    }
+
+    function toLoginForm() {
+
+        window.location.href = "/user/login";
+
+    }
+
+    function logout() {
+        $.ajax({
+            type: "POST",
+            url: '/api/auth/logout',
+            success: function (response) {
+                if (response['code'] === 1) {
+                    if ($.removeCookie('Authorization')) {
+                        $.removeCookie('refreshToken')
+                        tokenRemove();
+                        alert('로그아웃 되셨습니다');
+                    }else{
+                        let errorMsg = createErrorMsg(response['data']['errors']);
+                        alert(errorMsg);
+                    }
+                }
+            }
+        })
+
+        window.location.href="/";
+
+    }
+
+    function create(){
+        $.ajax({
+            type: "POST",
+            url: `/api/board`,
+            contentType: "application/json",
+            data: JSON.stringify({
+                title: $('#title').val(),
+                content: $('#content').val()
+            }),
+            success: function (response) {
+                    if(response['code']===1){
+                        window.location.href="/";
+                    }else{
+                        let errorMsg = createErrorMsg(response['data']['errors'])
+                        alert(errorMsg)
+                        window.location.href="/";
+                    }
+
+                }
+        })
+
+
+    }
+
+    function createErrorMsg(errors){
+        let errorMsg='';
+        Array.from(errors).forEach(function (error){
+             if(error['field']==='not'){
+                errorMsg+= error['reason']+'\n';
+            }else if(error['field']){
+                 errorMsg+= error['field'] +': '+error['reason']+'\n'
+             }
+        })
+        return errorMsg;
+    }
+
+    function toSignUpForm() {
+        window.location.href = "/user/signup";
+    }
+
+    function toDetailForm(boardId){
+        const authorization = $.cookie('Authorization')
+        const refresh = $.cookie('refreshToken')
+
+        $.cookie('Authorization',authorization,{path: `/detail/${boardId}`})
+        $.cookie('refreshToken',refresh,{path: `/detail/${boardId}`})
+
+
+        window.location.href = `/board/`+boardId;
+    }
+
+    function tokenRemove(){
+        $.cookie('Authorization',null,{path:'/'})
+        $.cookie('refreshToken',null,{path:'/'})
+    }
+
+</script>
+</html>

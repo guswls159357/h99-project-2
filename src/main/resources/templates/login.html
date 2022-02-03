@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <title>로그인 페이지</title>
+    <style>
+        #btn-tohome {
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <button id="btn-tohome" type="button" class="btn btn-dark" onclick="toHome()">홈으로 가기</button>
+</div>
+<div id="login-form">
+    <div id="login-title">Login</div>
+    <button id="login-kakao-btn"
+            onclick="location.href='https://kauth.kakao.com/oauth/authorize?client_id=8a68ec3284eb80622771376dd956d8ac&redirect_uri=http://54.180.104.9/user/kakao/callback&response_type=code'">
+
+        카카오로 로그인하기
+    </button>
+    <button id="login-id-btn" onclick="location.href='/user/signup'">
+        회원 가입하기
+    </button>
+    <div>
+        <div class="login-id-label">아이디</div>
+        <input type="text" name="username" id="username" class="login-input-box" required>
+
+        <div class="login-id-label">비밀번호</div>
+        <input type="password" name="password" id="password" class="login-input-box" required>
+
+        <button id="login-id-submit" onclick="onLogin()">로그인</button>
+    </div>
+</div>
+</body>
+<script>
+
+    function onLogin() {
+        $.ajax({
+            type: "POST",
+            url: `/api/auth/login`,
+            contentType: "application/json",
+            data: JSON.stringify({
+                login_id: $('#username').val(),
+                login_password: $('#password').val()
+            }),
+            success: function (response, status, xhr) {
+                if (response['code'] === -1) {
+                    let errorMsg = createErrorMsg(response['data']['errors'])
+                    alert(errorMsg)
+                    window.location.reload();
+                }
+
+                const authorization = xhr.getResponseHeader("Authorization");
+                const refresh = xhr.getResponseHeader("Refresh");
+
+                if (authorization) {
+
+                    $.cookie('Authorization', authorization, {path: '/'})
+                    $.cookie('refreshToken', refresh, {path: '/'})
+
+                    window.location.href = '/';
+                }
+            }
+        })
+    }
+
+    function toHome() {
+        window.location.href = '/';
+    }
+
+    function createErrorMsg(errors) {
+        let errorMsg = '';
+        Array.from(errors).forEach(function (error) {
+            if (error['field'] === 'not') {
+                errorMsg += error['reason'] + '\n';
+            } else if (error['field']) {
+                errorMsg += error['field'] + ': ' + error['reason'] + '\n'
+            }
+        })
+        return errorMsg;
+    }
+
+
+</script>
+</html>

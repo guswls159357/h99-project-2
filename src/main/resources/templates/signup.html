@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+              integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+              crossorigin="anonymous">
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+                integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+                crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+                integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+                crossorigin="anonymous"></script>
+
+        <title>게시판</title>
+        <style>
+            #btn-tohome{
+                display: block;
+                margin: auto;
+            }
+            .form-body {
+                display: block;
+                margin: auto;
+                width: 500px;
+            }
+
+            #nickname {
+                display: block;
+                float: left;
+                width: 380px;
+                margin-right: 1px;
+            }
+
+            #loginId{
+                display: block;
+                float: left;
+                width: 380px;
+                margin-right: 1px;
+            }
+
+            #login-id-label{
+                display: block;
+            }
+
+            #nickname-label{
+                display: block;
+            }
+
+            #submit{
+                display: block;
+            }
+        </style>
+
+    </head>
+</head>
+<body>
+<header>
+    <div class="jumbotron">
+        <h1 class="display-4">회원가입</h1>
+    </div>
+    <div>
+        <button id="btn-tohome" type="button" class="btn btn-dark" onclick="toHome()">홈으로 가기</button>
+    </div>
+</header>
+<div class="form-body">
+    <form th:action="@{/user/signup}" method="post">
+        <label for="loginId" id="login-id-label">아이디</label>
+        <input type="text" id="loginId" name="loginId" class="form-control"
+               placeholder="6-15글자의 알파벳 대,소문자와 숫자만 입력 가능합니다" required/>
+        <button onclick="check_id()" type="button" class="btn btn-dark" id="loginId-check">중복 확인</button>
+
+        <label for="loginPassword">비밀번호</label>
+        <input type="password" id="loginPassword" name="loginPassword" class="form-control"
+               placeholder="6-15글자의 알파벳 대,소문자와 숫자, 최소 1개 이상의 !,@,#를 입력하셔야 합니다" required/>
+        <label for="loginPasswordCheck">비밀번호 확인</label>
+        <input type="password" id="loginPasswordCheck" name="loginPasswordCheck" class="form-control"
+               placeholder="비밀번호와 같은 값을 입력하세요" required/>
+
+        <label for="nickname" id="nickname-label">닉네임</label>
+
+        <input type="text" id="nickname" name="nickname" class="form-control"
+               placeholder="3-15글자의 알파벳 대,소문자와 숫자만 입력 가능합니다" required/>
+
+        <button onclick="check_nickname()" type="button" class="btn btn-dark" id="nickname-check">중복 확인</button>
+
+        <input type="submit" id="submit" class="btn btn-dark" disabled>
+
+    </form>
+</div>
+</body>
+<script>
+    function toHome(){
+        window.location.href = '/';
+    }
+
+    function check_nickname() {
+
+        let nickname = $('#nickname').val()
+        if(nickname.replace(" ","")===""){
+            alert("공백은 사용하실 수 없습니다.")
+            return;
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "/api/auth/nickname/"+nickname,
+            success: function (response) {
+
+                if(response['code'] === -1){
+                    const error_msg = response['data']['errors'][0]
+                    const field = error_msg['field']
+                    const reason = error_msg['reason']
+                    alert(field+": "+reason)
+                    $(`#submit`).attr("disabled", true)
+                }else{
+                    alert("중복 체크 완료!")
+                    $(`#submit`).attr("disabled", false)
+                }
+
+            }
+        })
+    }
+
+    function check_id() {
+
+        let loginId = $('#loginId').val()
+        if(loginId.replace(" ","")===""){
+            alert("공백은 사용하실 수 없습니다.")
+            return;
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "/api/auth/loginId/"+loginId,
+            success: function (response) {
+
+                if(response['code'] === -1){
+                    const error_msg = response['data']['errors'][0]
+                    const field = error_msg['field']
+                    const reason = error_msg['reason']
+                    alert(field+": "+reason)
+                    $(`#submit`).attr("disabled", true)
+                }else{
+                    alert("중복 체크 완료!")
+                    $(`#submit`).attr("disabled", false)
+                }
+
+            }
+        })
+    }
+
+</script>
+</html>

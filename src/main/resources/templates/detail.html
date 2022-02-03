@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <script src="/static/basic.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+
+    <title>게시글 상세</title>
+    <style>
+        .card-list {
+            width: 40%;
+            display: block;
+            margin: 5% auto 5% auto;
+        }
+
+
+        .comment-content {
+            display: block;
+            width: 200px;
+        }
+
+        .card-body {
+            border-color: black;
+            display: block;
+            border-style: solid;
+            width: 500px;
+            margin: 20px auto 10px auto;
+        }
+
+        .comment {
+            padding: 5px;
+            border-color: black;
+            display: block;
+            border-style: solid;
+            width: 500px;
+            margin: auto;
+        }
+
+        #btn-tohome{
+            display: block;
+            margin: auto;
+        }
+
+    </style>
+
+</head>
+<body>
+<header>
+    <div class="jumbotron">
+        <h1 class="display-4">게시글 상세</h1>
+        <hr class="my-4">
+        <div>
+            <button id="btn-tohome" type="button" class="btn btn-dark" onclick="toHome()">홈으로 가기</button>
+        </div>
+    </div>
+</header>
+
+<div class="card-body">
+    <h5 class="card-title" th:text="'제목: '+${board.title}">제목: </h5>
+    <p class="card-username" th:text="'작성자: '+${board.nickname}">작성자: </p>
+    <p class="card-content" th:text="'내용: '+${board.content}">내용: </p>
+    <p class="card-createdAt" th:text="'작성 시간: '+${board.createdAt}">작성 시간: </p>
+</div>
+<div class="comment">
+    <div class="login-id-label">댓글</div>
+    <textarea name="comment-content" id="comment-content" class="comment-content" required></textarea>
+    <button id="comment-submit" th:onclick="'javascript:commentCreate('+${board.boardId}+')'">댓글 작성</button>
+</div>
+<div th:each="comment : ${board.commentResDtoList}">
+    <div class="card-body" th:id="'card-'+${comment.commentId}">
+        <p>-------댓글-------</p>
+        <p class="card-username" th:text="'작성자: '+${comment.nickname}">작성자: </p>
+        <p class="card-username" th:text="'내용: '+${comment.content}">작성자: </p>
+        <p class="card-content" th:text="'작성 시간: '+${comment.createdAt}">내용: </p>
+        <button class="btn btn-primary btn-detail" th:id="'update-'+${comment.nickname}"
+                th:onclick="showUpdate([[${comment.nickname} ]], [[${comment.commentId}]])">수정
+        </button>
+        <button class="btn btn-primary btn-detail" th:id="'delete-'+${comment.nickname}"
+                th:onclick="commentDelete([[${comment.nickname} ]], [[${comment.commentId}]])">삭제
+        </button>
+        <div th:id="'update-form-'+${comment.commentId}" style="display: none">
+            <div class="comment">
+                <div class="login-id-label">댓글 수정</div>
+                <textarea name="comment-content" th:id="'update-comment-content'+${comment.commentId}"
+                          class="comment-content" required></textarea>
+                <button id="update-comment-submit" th:onclick="'javascript:commentUpdate('+${comment.commentId}+')'">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+<script th:inline="javascript">
+
+    let login_user_nickname = "empty";
+
+    $(document).ready(function () {
+        login_user_nickname = "empty";
+        const authorization = $.cookie('Authorization')
+        const refresh = $.cookie('refreshToken')
+
+        $.ajaxSetup({
+            headers: {
+                'Authorization': authorization,
+                'Refresh': refresh
+            }
+        })
+
+        $.ajax({
+            type: "GET",
+            url: '/api/user',
+            success: function (response) {
+                if (response['code'] === 1) {
+                    login_user_nickname = response['data']['nickname']
+                }
+            }
+        })
+    })
+
+    function toHome() {
+        const authorization = $.cookie('Authorization')
+        const refresh = $.cookie('refreshToken')
+
+        if (authorization && refresh) {
+
+            $.cookie('Authorization', authorization, {path: '/'})
+            $.cookie('refreshToken', refresh, {path: '/'})
+
+        }
+        window.location.href = '/';
+    }
+
+    function showUpdate(nickname, commentId) {
+        if (login_user_nickname === 'empty') {
+            alert('로그인이 필요합니다')
+            window.location.href = '/user/login'
+        } else if (login_user_nickname === nickname) {
+            let tagId = '#update-form-' + commentId
+            $(tagId).show();
+        } else {
+            alert('직접 작성한 댓글만 수정할 수 있습니다')
+        }
+    }
+
+    function commentCreate(boardId) {
+        if(login_user_nickname==='empty'){
+            alert('로그인이 필요합니다')
+            window.location.href = '/user/login';
+        }
+
+        $.ajaxSetup({
+            headers: {
+                'Authorization': $.cookie('Authorization'),
+                'Refresh': $.cookie('refreshToken')
+            }
+        })
+
+        $.ajax({
+            type: "POST",
+            url: '/api/comment',
+            contentType: "application/json",
+            data: JSON.stringify({
+                board_id: boardId,
+                content: $('#comment-content').val()
+            }),
+            success: function (response) {
+                if (response['code'] === -1) {
+                    let errorMsg = createErrorMsg(response['data']['errors'])
+                    alert(errorMsg)
+                } else {
+                    alert('댓글이 작성되었습니다')
+                    window.location.reload();
+                }
+            }
+        })
+
+    }
+
+    function commentDelete(nickname, commentId) {
+
+        if (login_user_nickname === 'empty') {
+            alert('로그인이 필요합니다')
+            window.location.href = '/user/login'
+        } else if (login_user_nickname === nickname) {
+            $.ajaxSetup({
+                headers: {
+                    'Authorization': $.cookie('Authorization'),
+                    'Refresh': $.cookie('refreshToken')
+                }
+            })
+
+            $.ajax({
+                type: "DELETE",
+                url: '/api/comment/' + commentId,
+                success: function (response) {
+                    if (response['code'] === -1) {
+                        let errorMsg = createErrorMsg(response['data']['errors'])
+                        alert(errorMsg)
+                    } else {
+                        alert('댓글이 삭제되었습니다')
+                        window.location.reload();
+                    }
+                }
+            })
+        } else {
+            alert('직접 작성한 댓글만 삭제할 수 있습니다')
+        }
+    }
+
+    function commentUpdate(commentId) {
+        $.ajaxSetup({
+            headers: {
+                'Authorization': $.cookie('Authorization'),
+                'Refresh': $.cookie('refreshToken')
+            }
+        })
+
+        $.ajax({
+            type: "PATCH",
+            url: '/api/comment',
+            contentType: "application/json",
+            data: JSON.stringify({
+                id: commentId,
+                content: $('#update-comment-content' + commentId).val()
+            }),
+            success: function (response) {
+                if (response['code'] === -1) {
+                    let errorMsg = createErrorMsg(response['data']['errors'])
+                    alert(errorMsg)
+                } else {
+                    alert('댓글이 수정되었습니다')
+                    window.location.reload();
+                }
+            }
+        })
+
+    }
+
+    function createErrorMsg(errors) {
+        let errorMsg = '';
+        Array.from(errors).forEach(function (error) {
+            if (error['field'] === 'not') {
+                errorMsg += error['reason'] + '\n';
+            } else if (error['field']) {
+                errorMsg += error['field'] + ': ' + error['reason'] + '\n'
+            }
+        })
+        return errorMsg;
+    }
+</script>
+</html>
